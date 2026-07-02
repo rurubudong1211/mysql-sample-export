@@ -1,0 +1,25 @@
+[package]
+name = "mysql-sample-export"
+version = "1.0.2"
+description = "MySQL Sample Export"
+authors = ["Shawn Lee"]
+edition = "2021"
+
+[lib]
+name = "mysql_sample_export_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+base64 = "0.22"
+mysql_async = { version = "0.36", features = ["default-rustls-ring"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tauri = { version = "2", features = [] }
+tauri-plugin-dialog = "2"
+time = { version = "0.3", features = ["formatting"] }
+tokio = { version = "1", features = ["fs", "sync"] }
+uuid = { version = "1", features = ["v4", "serde"] }
+

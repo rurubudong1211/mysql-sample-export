@@ -1,0 +1,40 @@
+{
+  "name": "mysql-sample-export",
+  "version": "1.0.2",
+  "description": "MySQL Sample Export - Tauri 2 desktop app for exporting MySQL table structure and sample data",
+  "type": "module",
+  "scripts": {
+    "dev": "npm run tauri:dev",
+    "build": "npm run tauri:build && npm run package:windows",
+    "tauri": "tauri",
+    "dev:renderer": "vite --host 127.0.0.1",
+    "build:renderer": "tsc && vite build",
+    "preview": "vite preview",
+    "tauri:dev": "tauri dev",
+    "tauri:build": "tauri build",
+    "tauri:build:msi": "tauri build --bundles msi && npm run package:msi",
+    "tauri:build:all": "tauri build --bundles msi,nsis && npm run package:windows",
+    "package:portable": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/package-windows-portable.ps1",
+    "package:msi": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/normalize-windows-msi.ps1",
+    "package:windows": "npm run package:msi && npm run package:portable"
+  },
+  "dependencies": {
+    "@tauri-apps/api": "^2.0.0",
+    "@tauri-apps/plugin-dialog": "^2.0.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2.0.0",
+    "@types/react": "^18.3.3",
+    "@types/react-dom": "^18.3.0",
+    "@vitejs/plugin-react": "^4.3.1",
+    "typescript": "^5.5.3",
+    "vite": "^5.3.3"
+  },
+  "author": "Shawn Lee",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/rurubudong1211/mysql-sample-export.git"
+  }
+}
