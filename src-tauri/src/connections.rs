@@ -1,13 +1,16 @@
 use std::{fs, path::PathBuf};
 
 use base64::{engine::general_purpose, Engine as _};
-use tauri::{AppHandle, Manager};
+use tauri::AppHandle;
 use uuid::Uuid;
 
 use crate::types::{ConnectionInput, SavedConnection, StoredConnection};
 
-fn connections_file(app: &AppHandle) -> Result<PathBuf, String> {
-    let dir = app.path().app_data_dir().map_err(|err| err.to_string())?;
+fn connections_file(_app: &AppHandle) -> Result<PathBuf, String> {
+    let exe_path = std::env::current_exe().map_err(|err| err.to_string())?;
+    let dir = exe_path
+        .parent()
+        .ok_or_else(|| "Failed to resolve executable directory".to_string())?;
     Ok(dir.join("connections.json"))
 }
 
