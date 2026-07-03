@@ -150,21 +150,23 @@ impl DatabaseManager {
             export_tables.push(self.get_export_table_data(&options.database, &table_name, options.sample_limit).await?);
         }
 
-        let export_time = current_export_time();
+        let export_time = time::OffsetDateTime::now_utc();
+        let default_export_time = format_rfc3339_export_time(export_time);
+        let sql_export_time = format_sql_export_time(export_time);
         let content = if export_tables.len() == 1 {
             let table_data = &export_tables[0];
             match options.format {
-                ExportFormat::Sql => generate_sql_export(&options.database, table_data, &export_time),
-                ExportFormat::Json => generate_json_export(&options.database, table_data, &export_time)?,
+                ExportFormat::Sql => generate_sql_export(&options.database, table_data, &sql_export_time),
+                ExportFormat::Json => generate_json_export(&options.database, table_data, &default_export_time)?,
                 ExportFormat::Csv => generate_csv_export(&table_data.sample),
-                ExportFormat::Markdown => generate_markdown_export(&options.database, table_data, &export_time),
+                ExportFormat::Markdown => generate_markdown_export(&options.database, table_data, &default_export_time),
             }
         } else {
             match options.format {
-                ExportFormat::Sql => generate_multi_sql_export(&options.database, &export_tables, &export_time),
-                ExportFormat::Json => generate_multi_json_export(&options.database, &export_tables, &export_time, options.sample_limit)?,
+                ExportFormat::Sql => generate_multi_sql_export(&options.database, &export_tables, &sql_export_time),
+                ExportFormat::Json => generate_multi_json_export(&options.database, &export_tables, &default_export_time, options.sample_limit)?,
                 ExportFormat::Csv => generate_multi_csv_export(&options.database, &export_tables),
-                ExportFormat::Markdown => generate_multi_markdown_export(&options.database, &export_tables, &export_time, options.sample_limit),
+                ExportFormat::Markdown => generate_multi_markdown_export(&options.database, &export_tables, &default_export_time, options.sample_limit),
             }
         };
 
@@ -314,23 +316,37 @@ fn object_get_u64(object: &Map<String, Value>, key: &str) -> u64 {
         .unwrap_or(0)
 }
 
-fn current_export_time() -> String {
-    time::OffsetDateTime::now_utc()
+fn format_rfc3339_export_time(export_time: time::OffsetDateTime) -> String {
+    export_time
         .format(&time::format_description::well_known::Rfc3339)
         .unwrap_or_else(|_| "1970-01-01T00:00:00Z".to_string())
 }
 
+fn format_sql_export_time(export_time: time::OffsetDateTime) -> String {
+    let export_time = export_time.to_offset(
+        time::UtcOffset::from_hms(8, 0, 0).expect("valid UTC+8 offset"),
+    );
+
+    format!(
+        "{:04}-{:02}-{:02} {:02}:{:02}:{:02}",
+        export_time.year(),
+        u8::from(export_time.month()),
+        export_time.day(),
+        export_time.hour(),
+        export_time.minute(),
+        export_time.second()
+    )
+
+}
 fn generate_sql_export(database: &str, table_data: &ExportTableData, export_time: &str) -> String {
     let mut lines = Vec::new();
     lines.push("-- ============================================".to_string());
     lines.push(format!("-- Database: {database}"));
     lines.push(format!("-- Table: {}", table_data.name));
     lines.push(format!("-- Export Time: {export_time}"));
+    lines.push("-- Export By: MySQL Sample Export".to_string());
     lines.push("-- ============================================".to_string());
-    lines.push(String::new());
-    lines.push(format!("USE {};", quote_identifier(database)));
-    lines.push(String::new());
-    append_sql_table_export(&mut lines, table_data);
+    append_sql_table_export(&mut lines, table_data, false);
     lines.join("\n")
 }
 
@@ -341,23 +357,27 @@ fn generate_multi_sql_export(database: &str, tables: &[ExportTableData], export_
     lines.push(format!("-- Tables: {}", tables.iter().map(|table| table.name.as_str()).collect::<Vec<_>>().join(", ")));
     lines.push(format!("-- Table Count: {}", tables.len()));
     lines.push(format!("-- Export Time: {export_time}"));
+    lines.push("-- Export By: MySQL Sample Export".to_string());
     lines.push("-- ============================================".to_string());
     lines.push(String::new());
     lines.push(format!("USE {};", quote_identifier(database)));
 
     for table_data in tables {
         lines.push(String::new());
-        append_sql_table_export(&mut lines, table_data);
+        append_sql_table_export(&mut lines, table_data, true);
     }
 
     lines.join("\n")
 }
 
-fn append_sql_table_export(lines: &mut Vec<String>, table_data: &ExportTableData) {
-    lines.push("-- --------------------------------------------".to_string());
-    lines.push(format!("-- Table: {}", table_data.name));
-    lines.push("-- --------------------------------------------".to_string());
-    lines.push(String::new());
+fn append_sql_table_export(lines: &mut Vec<String>, table_data: &ExportTableData, include_table_header: bool) {
+    if include_table_header {
+        lines.push("-- --------------------------------------------".to_string());
+        lines.push(format!("-- Table: {}", table_data.name));
+        lines.push("-- --------------------------------------------".to_string());
+        lines.push(String::new());
+    }
+
     lines.push("-- 表结构".to_string());
     if table_data.create_sql.trim().is_empty() {
         lines.push("-- 未能获取建表语句".to_string());
@@ -603,4 +623,48 @@ fn escape_markdown_cell(value: &str) -> String {
     value.replace('|', "\\|").replace("\r\n", "<br>").replace('\n', "<br>").replace('\r', "<br>")
 }
 
+#[cfg(test)]
+mod tests {
+    use super::*;
 
+    fn table_data() -> ExportTableData {
+        ExportTableData {
+            name: "disaster_info".to_string(),
+            create_sql: "CREATE TABLE `disaster_info` (`id` int)".to_string(),
+            structure: Vec::new(),
+            sample: SampleData {
+                columns: vec!["id".to_string()],
+                rows: vec![vec![serde_json::json!(1)]],
+            },
+        }
+    }
+
+    #[test]
+    fn format_sql_export_time_uses_utc_plus_8_timestamp() {
+        let export_time = time::Date::from_calendar_date(2026, time::Month::July, 2)
+            .unwrap()
+            .with_hms(8, 5, 2)
+            .unwrap()
+            .assume_utc();
+
+        assert_eq!(format_sql_export_time(export_time), "2026-07-02 16:05:02");
+    }
+
+    #[test]
+    fn generate_sql_export_uses_simplified_header() {
+        let sql = generate_sql_export("tem_platform", &table_data(), "2026-07-02 08:05:02");
+        let expected_header = concat!(
+            "-- ============================================\n",
+            "-- Database: tem_platform\n",
+            "-- Table: disaster_info\n",
+            "-- Export Time: 2026-07-02 08:05:02\n",
+            "-- Export By: MySQL Sample Export\n",
+            "-- ============================================\n",
+        );
+
+        assert!(sql.starts_with(expected_header));
+        assert!(!sql.contains("USE `tem_platform`;"));
+        assert!(!sql.contains("-- --------------------------------------------"));
+        assert!(sql.contains("INSERT INTO `disaster_info` (`id`) VALUES (1);"));
+    }
+}
