@@ -946,6 +946,218 @@ body {
   color: var(--text-primary);
 }
 
+.export-dialog-wide {
+  width: 720px;
+  max-height: min(86vh, 760px);
+  overflow-y: auto;
+}
+
+.export-overview {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.export-overview > div {
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-input);
+}
+
+.export-overview span {
+  display: block;
+  color: var(--text-muted);
+  font-size: 11px;
+  margin-bottom: 4px;
+}
+
+.export-overview strong {
+  display: block;
+  color: var(--text-primary);
+  font-size: 15px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.export-config-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.export-sample-control {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+
+.export-sample-control input {
+  width: 80px;
+  padding: 6px 9px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-input);
+  color: var(--text-primary);
+  font-size: 13px;
+}
+
+.export-bulk-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.export-rule-list {
+  display: flex;
+  flex-direction: column;
+  max-height: 240px;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-input);
+  margin-bottom: 14px;
+}
+
+.export-rule-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border-light);
+}
+
+.export-rule-row:last-child {
+  border-bottom: none;
+}
+
+.export-rule-table {
+  min-width: 0;
+}
+
+.export-rule-table span {
+  display: block;
+  color: var(--text-primary);
+  font-size: 13px;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.export-rule-table small {
+  display: block;
+  color: var(--text-muted);
+  font-size: 11px;
+  margin-top: 2px;
+}
+
+.export-mode-toggle {
+  display: inline-flex;
+  padding: 2px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-card);
+}
+
+.export-mode-toggle button {
+  min-width: 64px;
+  padding: 5px 9px;
+  border: none;
+  border-radius: 3px;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.export-mode-toggle button.active {
+  background: var(--accent);
+  color: var(--text-on-accent);
+}
+
+.export-mode-toggle button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.export-warning-panel {
+  padding: 12px;
+  border: 1px solid var(--warning);
+  border-radius: var(--radius-sm);
+  background: var(--warning-soft);
+  color: var(--text-primary);
+  margin-bottom: 14px;
+}
+
+.export-warning-panel strong {
+  display: block;
+  margin-bottom: 4px;
+  color: var(--warning);
+  font-size: 13px;
+}
+
+.export-warning-panel p {
+  color: var(--text-secondary);
+  font-size: 12px;
+  margin-bottom: 8px;
+}
+
+.export-warning-tables {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.export-warning-tables span {
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 2px 8px;
+  border-radius: 10px;
+  background: var(--bg-card);
+  color: var(--text-secondary);
+  font-size: 11px;
+}
+
+.export-confirm-check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-primary);
+  font-size: 13px;
+}
+
+.export-confirm-check input {
+  width: 14px;
+  height: 14px;
+  accent-color: var(--warning);
+}
+
+.export-section-label {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-bottom: 12px;
+}
+
+.export-format-note {
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 12px;
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+
 .export-table-summary {
   display: flex;
   gap: 6px;
@@ -1064,5 +1276,31 @@ body {
   .obj-type,
   .obj-rows {
     display: none;
+  }
+
+  .export-dialog-wide {
+    width: 94vw;
+    max-height: 88vh;
+  }
+
+  .export-overview {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .export-config-row {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .export-rule-row {
+    grid-template-columns: 1fr;
+  }
+
+  .export-mode-toggle {
+    width: 100%;
+  }
+
+  .export-mode-toggle button {
+    flex: 1;
   }
 }

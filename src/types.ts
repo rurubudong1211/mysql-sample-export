@@ -34,10 +34,24 @@ export interface SavedConnection {
   ssl: boolean;
 }
 
+export type ExportMode = 'sample' | 'full';
+
+export interface ExportTableRule {
+  table: string;
+  mode: ExportMode;
+}
+
+export interface ExportRequest {
+  format: ExportFormat;
+  sampleLimit: number;
+  tableRules: ExportTableRule[];
+}
+
 export interface ExportOptions {
   database: string;
   table?: string;
   tables?: string[];
+  tableRules?: ExportTableRule[];
   format: ExportFormat;
   sampleLimit: number;
   filePath: string;

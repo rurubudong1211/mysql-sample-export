@@ -1,14 +1,19 @@
-import React, { useState } from 'react';
-import { ExportFormat } from '../types';
+import React, { useEffect, useMemo, useState } from 'react';
+import { ExportFormat, ExportMode, ExportRequest, ExportTableRule, TableInfo } from '../types';
 
 interface Props {
   database: string;
   table?: string;
   tables?: string[];
-  sampleLimit: number;
-  onExport: (format: ExportFormat) => void | Promise<void>;
+  tableInfos?: TableInfo[];
+  initialSampleLimit?: number;
+  onExport: (request: ExportRequest) => void | Promise<void>;
   onClose: () => void;
 }
+
+const DEFAULT_SAMPLE_LIMIT = 10;
+const MAX_SAMPLE_LIMIT = 1000;
+const FULL_EXPORT_CONFIRM_THRESHOLD = 100_000;
 
 const FORMATS: { format: ExportFormat; name: string; desc: string; icon: string }[] = [
   { format: 'sql', name: 'SQL', desc: '建表语句 + INSERT', icon: '📝' },
@@ -17,53 +22,189 @@ const FORMATS: { format: ExportFormat; name: string; desc: string; icon: string 
   { format: 'markdown', name: 'Markdown', desc: '文档友好', icon: '📄' },
 ];
 
-const ExportDialog: React.FC<Props> = ({ database, table, tables, sampleLimit, onExport, onClose }) => {
+const clampSampleLimit = (value: number) => Math.min(MAX_SAMPLE_LIMIT, Math.max(1, value || DEFAULT_SAMPLE_LIMIT));
+const formatRows = (rows: number) => rows.toLocaleString();
+
+const ExportDialog: React.FC<Props> = ({
+  database,
+  table,
+  tables,
+  tableInfos,
+  initialSampleLimit = DEFAULT_SAMPLE_LIMIT,
+  onExport,
+  onClose,
+}) => {
+  const tableNames = useMemo(() => (tables && tables.length > 0 ? tables : table ? [table] : []), [table, tables]);
+  const tableNamesKey = tableNames.join('\u0000');
+  const tableInfoMap = useMemo(() => new Map((tableInfos || []).map((info) => [info.name, info])), [tableInfos]);
+
   const [selectedFormat, setSelectedFormat] = useState<ExportFormat>('sql');
+  const [sampleLimit, setSampleLimit] = useState(() => clampSampleLimit(initialSampleLimit));
+  const [tableRules, setTableRules] = useState<ExportTableRule[]>(() => (
+    tableNames.map((name) => ({ table: name, mode: 'sample' }))
+  ));
+  const [fullExportConfirmed, setFullExportConfirmed] = useState(false);
   const [exporting, setExporting] = useState(false);
 
-  const tableNames = tables && tables.length > 0 ? tables : table ? [table] : [];
+  useEffect(() => {
+    setTableRules((previousRules) => {
+      const previousModes = new Map(previousRules.map((rule) => [rule.table, rule.mode]));
+      return tableNames.map((name) => ({ table: name, mode: previousModes.get(name) || 'sample' }));
+    });
+  }, [tableNamesKey]);
+
+  const tableRulesKey = tableRules.map((rule) => `${rule.table}:${rule.mode}`).join('|');
+  useEffect(() => {
+    setFullExportConfirmed(false);
+  }, [tableRulesKey]);
+
+  const sampleCount = tableRules.filter((rule) => rule.mode === 'sample').length;
+  const fullRules = tableRules.filter((rule) => rule.mode === 'full');
+  const fullCount = fullRules.length;
   const isMultiTable = tableNames.length > 1;
-  const previewTables = tableNames.slice(0, 6);
-  const hiddenCount = Math.max(0, tableNames.length - previewTables.length);
+  const estimatedFullRows = fullRules.reduce((total, rule) => {
+    const rows = tableInfoMap.get(rule.table)?.rows || 0;
+    return total + Math.max(0, rows);
+  }, 0);
+  const fullTableSummaries = fullRules
+    .map((rule) => ({ name: rule.table, rows: tableInfoMap.get(rule.table)?.rows || 0 }))
+    .sort((left, right) => right.rows - left.rows)
+    .slice(0, 4);
+  const requiresFullConfirmation = fullCount > 0 && estimatedFullRows > FULL_EXPORT_CONFIRM_THRESHOLD;
+
+  const setAllModes = (mode: ExportMode) => {
+    setTableRules((rules) => rules.map((rule) => ({ ...rule, mode })));
+  };
+
+  const setTableMode = (tableName: string, mode: ExportMode) => {
+    setTableRules((rules) => rules.map((rule) => (rule.table === tableName ? { ...rule, mode } : rule)));
+  };
+
+  const handleSampleLimitChange = (value: string) => {
+    setSampleLimit(clampSampleLimit(parseInt(value, 10)));
+  };
 
   const handleExport = async () => {
+    if (requiresFullConfirmation && !fullExportConfirmed) return;
+
     setExporting(true);
     try {
-      await onExport(selectedFormat);
+      await onExport({
+        format: selectedFormat,
+        sampleLimit,
+        tableRules,
+      });
     } finally {
       setExporting(false);
     }
   };
 
+  const dataScopeDescription = fullCount === 0
+    ? `前 ${sampleLimit} 条样例数据`
+    : sampleCount === 0
+      ? '全量数据'
+      : `${sampleCount} 张 Sample 表 + ${fullCount} 张全量表`;
+
   return (
     <div className="export-dialog-overlay" onClick={onClose}>
-      <div className="export-dialog" onClick={(e) => e.stopPropagation()}>
+      <div className="export-dialog export-dialog-wide" onClick={(e) => e.stopPropagation()}>
         <h3>📥 导出数据</h3>
 
-        <div style={{ marginBottom: 16, fontSize: 13, color: 'var(--text-secondary)' }}>
-          {isMultiTable ? (
-            <>
-              数据库: <strong style={{ color: 'var(--accent)' }}>{database}</strong>
-              <span style={{ marginLeft: 16 }}>表数量: <strong>{tableNames.length}</strong></span>
-            </>
-          ) : (
-            <>表: <strong style={{ color: 'var(--accent)' }}>{database}.{tableNames[0]}</strong></>
-          )}
-          <span style={{ marginLeft: 16 }}>样例行数: <strong>{sampleLimit}</strong></span>
+        <div className="export-overview">
+          <div>
+            <span>数据库</span>
+            <strong>{database}</strong>
+          </div>
+          <div>
+            <span>表数量</span>
+            <strong>{tableNames.length}</strong>
+          </div>
+          <div>
+            <span>Sample</span>
+            <strong>{sampleCount}</strong>
+          </div>
+          <div>
+            <span>全量</span>
+            <strong>{fullCount}</strong>
+          </div>
         </div>
 
-        {isMultiTable && (
-          <div className="export-table-summary">
-            {previewTables.map((name) => (
-              <span key={name}>{name}</span>
-            ))}
-            {hiddenCount > 0 && <span>+{hiddenCount}</span>}
+        <div className="export-config-row">
+          <label className="export-sample-control">
+            Sample 行数
+            <input
+              type="number"
+              value={sampleLimit}
+              min={1}
+              max={MAX_SAMPLE_LIMIT}
+              onChange={(event) => handleSampleLimitChange(event.target.value)}
+            />
+          </label>
+          <div className="export-bulk-actions">
+            <button type="button" className="btn btn-small" onClick={() => setAllModes('sample')} disabled={exporting || tableRules.length === 0}>
+              全部 Sample
+            </button>
+            <button type="button" className="btn btn-small" onClick={() => setAllModes('full')} disabled={exporting || tableRules.length === 0}>
+              全部全量
+            </button>
+          </div>
+        </div>
+
+        <div className="export-rule-list" aria-label="表导出模式">
+          {tableRules.map((rule) => {
+            const tableInfo = tableInfoMap.get(rule.table);
+            return (
+              <div className="export-rule-row" key={rule.table}>
+                <div className="export-rule-table">
+                  <span title={rule.table}>{rule.table}</span>
+                  <small>{tableInfo && tableInfo.rows > 0 ? `${formatRows(tableInfo.rows)} 行` : '行数未知'}</small>
+                </div>
+                <div className="export-mode-toggle" role="group" aria-label={`${rule.table} 导出模式`}>
+                  <button
+                    type="button"
+                    className={rule.mode === 'sample' ? 'active' : ''}
+                    onClick={() => setTableMode(rule.table, 'sample')}
+                    disabled={exporting}
+                  >
+                    Sample
+                  </button>
+                  <button
+                    type="button"
+                    className={rule.mode === 'full' ? 'active' : ''}
+                    onClick={() => setTableMode(rule.table, 'full')}
+                    disabled={exporting}
+                  >
+                    全量
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {requiresFullConfirmation && (
+          <div className="export-warning-panel">
+            <strong>全量导出确认</strong>
+            <p>
+              已选择 {fullCount} 张全量表，估算总行数 {formatRows(estimatedFullRows)}，可能生成较大的文件。
+            </p>
+            <div className="export-warning-tables">
+              {fullTableSummaries.map((item) => (
+                <span key={item.name}>{item.name}{item.rows > 0 ? ` · ${formatRows(item.rows)} 行` : ''}</span>
+              ))}
+            </div>
+            <label className="export-confirm-check">
+              <input
+                type="checkbox"
+                checked={fullExportConfirmed}
+                onChange={(event) => setFullExportConfirmed(event.target.checked)}
+              />
+              我确认导出这些全量表
+            </label>
           </div>
         )}
 
-        <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 12 }}>
-          选择导出格式：
-        </p>
+        <p className="export-section-label">选择导出格式：</p>
 
         <div className="export-format-selector">
           {FORMATS.map((f) => (
@@ -78,26 +219,22 @@ const ExportDialog: React.FC<Props> = ({ database, table, tables, sampleLimit, o
           ))}
         </div>
 
-        <div style={{
-          background: 'var(--bg-input)',
-          border: '1px solid var(--border)',
-          borderRadius: 'var(--radius-sm)',
-          padding: 12,
-          fontSize: 12,
-          color: 'var(--text-muted)',
-          marginBottom: 8,
-        }}>
-          {selectedFormat === 'sql' && '导出内容：CREATE TABLE 建表语句 + 前 N 条数据的 INSERT 语句'}
-          {selectedFormat === 'json' && '导出内容：表结构元数据 + 样例数据，格式化的 JSON 文件'}
-          {selectedFormat === 'csv' && (isMultiTable ? '导出内容：多个表会在同一个 CSV 文件中按表分块保存' : '导出内容：仅样例数据，CSV 格式（含表头）')}
-          {selectedFormat === 'markdown' && '导出内容：表结构表格 + 样例数据表格，Markdown 文档'}
+        <div className="export-format-note">
+          {selectedFormat === 'sql' && `导出内容：CREATE TABLE + ${dataScopeDescription}，输出 INSERT 语句`}
+          {selectedFormat === 'json' && `导出内容：表结构元数据 + ${dataScopeDescription}，输出结构化 JSON`}
+          {selectedFormat === 'csv' && (isMultiTable ? `导出内容：表级元数据 + ${dataScopeDescription}，多个表按表分块保存` : `导出内容：表级元数据 + ${dataScopeDescription}，CSV 格式含表头`)}
+          {selectedFormat === 'markdown' && `导出内容：表结构表格 + ${dataScopeDescription}，输出数据表格`}
         </div>
 
         <div className="export-actions">
           <button className="btn" onClick={onClose} disabled={exporting}>
             取消
           </button>
-          <button className="btn btn-primary" onClick={handleExport} disabled={exporting || tableNames.length === 0}>
+          <button
+            className="btn btn-primary"
+            onClick={handleExport}
+            disabled={exporting || tableRules.length === 0 || (requiresFullConfirmation && !fullExportConfirmed)}
+          >
             {exporting ? '⏳ 导出中...' : '💾 保存文件'}
           </button>
         </div>

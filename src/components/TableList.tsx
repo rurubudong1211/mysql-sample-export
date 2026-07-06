@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { ExportFormat, TableInfo } from '../types';
+import { ExportFormat, ExportRequest, TableInfo } from '../types';
 import ExportDialog from './ExportDialog';
 
 interface Props {
@@ -19,7 +19,6 @@ const sanitizeFileName = (name: string) => name.replace(/[\\/:*?"<>|]/g, '_');
 
 const TableList: React.FC<Props> = ({ database, tables, onSelect, onRefresh, loading }) => {
   const [selectedTables, setSelectedTables] = useState<string[]>([]);
-  const [sampleLimit, setSampleLimit] = useState(10);
   const [searchText, setSearchText] = useState('');
   const searchInputRef = useRef<HTMLInputElement>(null);
   const [showExport, setShowExport] = useState(false);
@@ -27,12 +26,18 @@ const TableList: React.FC<Props> = ({ database, tables, onSelect, onRefresh, loa
 
   const keyword = searchText.trim().toLowerCase();
   const tableNames = useMemo(() => tables.map((table) => table.name), [tables]);
+  const tableInfoMap = useMemo(() => new Map(tables.map((table) => [table.name, table])), [tables]);
   const filteredTables = useMemo(() => {
     if (!keyword) return tables;
     return tables.filter((table) => table.name.toLowerCase().includes(keyword));
   }, [tables, keyword]);
   const filteredTableNames = useMemo(() => filteredTables.map((table) => table.name), [filteredTables]);
   const selectedSet = useMemo(() => new Set(selectedTables), [selectedTables]);
+  const selectedTableInfos = useMemo(() => (
+    selectedTables
+      .map((name) => tableInfoMap.get(name))
+      .filter((table): table is TableInfo => Boolean(table))
+  ), [selectedTables, tableInfoMap]);
   const selectedVisibleCount = filteredTableNames.filter((name) => selectedSet.has(name)).length;
   const allVisibleSelected = filteredTableNames.length > 0 && selectedVisibleCount === filteredTableNames.length;
   const partiallyVisibleSelected = selectedVisibleCount > 0 && !allVisibleSelected;
@@ -77,14 +82,17 @@ const TableList: React.FC<Props> = ({ database, tables, onSelect, onRefresh, loa
     ));
   };
 
-  const handleExport = async (format: ExportFormat) => {
+  const handleExport = async ({ format, sampleLimit, tableRules }: ExportRequest) => {
     if (selectedTables.length === 0) {
       setError('请先选择要导出的表');
       return;
     }
 
     try {
-      const exportTables = selectedTables.filter((name) => name && name !== 'undefined' && name !== 'null');
+      const selectedNames = new Set(selectedTables);
+      const exportRules = tableRules
+        .filter((rule) => rule.table && rule.table !== 'undefined' && rule.table !== 'null' && selectedNames.has(rule.table));
+      const exportTables = exportRules.map((rule) => rule.table);
       if (exportTables.length === 0) {
         setError('没有有效的表可导出，请重新选择');
         return;
@@ -108,13 +116,15 @@ const TableList: React.FC<Props> = ({ database, tables, onSelect, onRefresh, loa
         database,
         table: exportTables[0],
         tables: exportTables,
+        tableRules: exportRules,
         format,
         sampleLimit,
         filePath: dialogResult.filePath,
       });
 
       if (res.success) {
-        alert(`导出成功：${exportTables.length} 个表\n文件已保存到: ${dialogResult.filePath}`);
+        const fullCount = exportRules.filter((rule) => rule.mode === 'full').length;
+        alert(`导出成功：${exportTables.length} 个表（Sample ${exportTables.length - fullCount} / 全量 ${fullCount}）\n文件已保存到: ${dialogResult.filePath}`);
         setShowExport(false);
       } else {
         setError(res.error || '导出失败');
@@ -150,19 +160,6 @@ const TableList: React.FC<Props> = ({ database, tables, onSelect, onRefresh, loa
               </button>
             )}
           </div>
-          <label className="sample-limit-control">
-            样例行数
-            <input
-              type="number"
-              value={sampleLimit}
-              min={1}
-              max={1000}
-              onChange={(e) => {
-                const val = Math.min(1000, Math.max(1, parseInt(e.target.value, 10) || 1));
-                setSampleLimit(val);
-              }}
-            />
-          </label>
           <button className="btn" onClick={() => setSelectedTables([])} disabled={selectedTables.length === 0}>
             清空选择
           </button>
@@ -256,7 +253,8 @@ const TableList: React.FC<Props> = ({ database, tables, onSelect, onRefresh, loa
         <ExportDialog
           database={database}
           tables={selectedTables}
-          sampleLimit={sampleLimit}
+          tableInfos={selectedTableInfos}
+          initialSampleLimit={10}
           onExport={handleExport}
           onClose={() => setShowExport(false)}
         />

@@ -110,12 +110,27 @@ pub enum ExportFormat {
     Markdown,
 }
 
+#[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "lowercase")]
+pub enum ExportMode {
+    Sample,
+    Full,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ExportTableRule {
+    pub table: String,
+    pub mode: ExportMode,
+}
+
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ExportOptions {
     pub database: String,
     pub table: Option<String>,
     pub tables: Option<Vec<String>>,
+    pub table_rules: Option<Vec<ExportTableRule>>,
     pub format: ExportFormat,
     pub sample_limit: u32,
     pub file_path: String,
@@ -124,6 +139,7 @@ pub struct ExportOptions {
 #[derive(Debug, Clone)]
 pub struct ExportTableData {
     pub name: String,
+    pub export_mode: ExportMode,
     pub create_sql: String,
     pub structure: Vec<Value>,
     pub sample: SampleData,

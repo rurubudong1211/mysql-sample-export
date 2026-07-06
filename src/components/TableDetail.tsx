@@ -1,16 +1,17 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { ColumnInfo, ExportFormat } from '../types';
+import { ColumnInfo, ExportRequest, TableInfo } from '../types';
 import ExportDialog from './ExportDialog';
 
 interface Props {
   database: string;
   table: string;
+  tableInfo?: TableInfo;
   onBack: () => void;
 }
 
 type TabType = 'structure' | 'data' | 'create-sql';
 
-const TableDetail: React.FC<Props> = ({ database, table, onBack }) => {
+const TableDetail: React.FC<Props> = ({ database, table, tableInfo, onBack }) => {
   const [activeTab, setActiveTab] = useState<TabType>('structure');
   const [structure, setStructure] = useState<ColumnInfo[]>([]);
   const [sampleData, setSampleData] = useState<{ columns: string[]; rows: any[][] }>({ columns: [], rows: [] });
@@ -86,8 +87,9 @@ const TableDetail: React.FC<Props> = ({ database, table, onBack }) => {
   }, [activeTab, sampleLimit]);
 
   // 导出处理
-  const handleExport = async (format: ExportFormat) => {
+  const handleExport = async ({ format, sampleLimit: exportSampleLimit, tableRules }: ExportRequest) => {
     try {
+      const exportRules = tableRules.length > 0 ? tableRules : [{ table, mode: 'sample' as const }];
       const defaultExt = format === 'sql' ? 'sql' : format === 'json' ? 'json' : format === 'csv' ? 'csv' : 'md';
       const dialogResult = await window.dbApi.saveFileDialog({
         defaultName: `${database}_${table}.${defaultExt}`,
@@ -102,13 +104,16 @@ const TableDetail: React.FC<Props> = ({ database, table, onBack }) => {
       const res = await window.dbApi.exportData({
         database,
         table,
+        tables: [table],
+        tableRules: exportRules,
         format,
-        sampleLimit,
+        sampleLimit: exportSampleLimit,
         filePath: dialogResult.filePath,
       });
 
       if (res.success) {
-        alert(`导出成功！\n文件已保存到: ${dialogResult.filePath}`);
+        const modeText = exportRules.some((rule) => rule.mode === 'full') ? '全量' : 'Sample';
+        alert(`导出成功：${modeText}\n文件已保存到: ${dialogResult.filePath}`);
         setShowExport(false);
       } else {
         setError(res.error || '导出失败');
@@ -323,7 +328,8 @@ const TableDetail: React.FC<Props> = ({ database, table, onBack }) => {
         <ExportDialog
           database={database}
           table={table}
-          sampleLimit={sampleLimit}
+          tableInfos={tableInfo ? [tableInfo] : undefined}
+          initialSampleLimit={sampleLimit}
           onExport={handleExport}
           onClose={() => setShowExport(false)}
         />

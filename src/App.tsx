@@ -273,6 +273,7 @@ const App: React.FC = () => {
           <TableDetail
             database={selectedDb}
             table={selectedTable}
+            tableInfo={tables.find((item) => item.name === selectedTable)}
             onBack={() => { setSelectedTable(''); setView('tables'); }}
           />
         )}
