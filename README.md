@@ -1,6 +1,6 @@
 # MySQL Sample Export
 
-> 把 MySQL 表结构和样例数据导出为 AI Agent 可用的上下文快照——不用连数据库、不用写脚本、不用手动脱敏。
+> 从 MySQL 数据库导出表结构与样例数据，为 AI Agent 提供精准上下文，避免全量数据塞爆窗口。
 
 [![GitHub release](https://img.shields.io/github/v/release/rurubudong1211/mysql-sample-export?label=release)](https://github.com/rurubudong1211/mysql-sample-export/releases)
 [![License](https://img.shields.io/badge/license-MIT-green)](./LICENSE)
