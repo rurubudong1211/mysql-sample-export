@@ -1,10 +1,15 @@
 # MySQL Sample Export
 
-> 从 MySQL 数据库导出表结构与样例数据，为 AI Agent 提供精准上下文，避免全量数据塞爆窗口。
+> 把 MySQL 表结构和样例数据导出为 AI Agent 可用的上下文快照——不用连数据库、不用写脚本、不用手动脱敏。
 
 [![GitHub release](https://img.shields.io/github/v/release/rurubudong1211/mysql-sample-export?label=release)](https://github.com/rurubudong1211/mysql-sample-export/releases)
-[![License](https://img.shields.io/github/license/rurubudong1211/mysql-sample-export)](./LICENSE)
+[![License](https://img.shields.io/badge/license-MIT-green)](./LICENSE)
 [![Platform](https://img.shields.io/badge/platform-Windows%2010%2F11-blue)](https://github.com/rurubudong1211/mysql-sample-export/releases)
+[![Tech Stack](https://img.shields.io/badge/stack-Tauri%202%20%2B%20Rust%20%2B%20React-orange)](#-项目结构)
+
+**适合谁用**：需要向 AI 编程助手（Claude、ChatGPT、Copilot 等）提供数据库 schema 上下文的后端/全栈开发者；需要快速生成数据库文档的 DBA 和团队协作场景。
+
+**最快上手**：下载便携版 → 解压 → 填入 MySQL 连接 → 选择表 → 点导出。不需要 Docker，不需要命令行。
 
 ## ✨ 项目亮点
 

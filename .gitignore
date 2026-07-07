@@ -25,3 +25,5 @@ Thumbs.db
 .vscode/
 .idea/
 /AGENTS.md
+.agents
+nul
