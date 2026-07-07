@@ -4,6 +4,7 @@ version = "1.0.2"
 description = "MySQL Sample Export"
 authors = ["Shawn Lee"]
 edition = "2021"
+license = "MIT"
 
 [lib]
 name = "mysql_sample_export_lib"

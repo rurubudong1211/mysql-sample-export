@@ -32,6 +32,7 @@
     "typescript": "^5.5.3",
     "vite": "^5.3.3"
   },
+  "license": "MIT",
   "author": "Shawn Lee",
   "repository": {
     "type": "git",
