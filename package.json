@@ -1,6 +1,6 @@
 {
   "name": "mysql-sample-export",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "MySQL Sample Export - Tauri 2 desktop app for exporting MySQL table structure and sample data",
   "type": "module",
   "scripts": {

@@ -164,6 +164,20 @@ cd src-tauri && cargo test
 cd src-tauri && cargo fmt
 ```
 
+### 升级版本并打包
+
+在项目根目录使用 PowerShell 执行以下命令，将补丁版本号递增（例如 `1.0.3` 升级到 `1.0.4`），同步 Tauri 与 Rust 版本号，并生成 Windows 安装包和便携版：
+
+```powershell
+npm version patch --no-git-tag-version
+
+node -e 'const fs=require("fs"); const version=require("./package.json").version; const configPath="src-tauri/tauri.conf.json"; const config=JSON.parse(fs.readFileSync(configPath,"utf8").replace(/^\uFEFF/,"")); config.version=version; fs.writeFileSync(configPath,JSON.stringify(config,null,2)+"\n","utf8"); const cargoPath="src-tauri/Cargo.toml"; let cargo=fs.readFileSync(cargoPath,"utf8").replace(/^\uFEFF/,""); cargo=cargo.replace(/^version\s*=\s*"[^"]+"/m,`version = "${version}"`); fs.writeFileSync(cargoPath,cargo,"utf8"); console.log(`版本已同步为 ${version}`);'
+
+npm run build
+```
+
+打包产物位于 `src-tauri/target/release/bundle/`。
+
 ## ❓ 适用场景
 
 | 场景 | 说明 |
