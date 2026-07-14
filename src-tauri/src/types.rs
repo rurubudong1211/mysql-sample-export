@@ -133,7 +133,13 @@ pub struct ExportOptions {
     pub table_rules: Option<Vec<ExportTableRule>>,
     pub format: ExportFormat,
     pub sample_limit: u32,
+    #[serde(default = "default_mask_sensitive_data")]
+    pub mask_sensitive_data: bool,
     pub file_path: String,
+}
+
+fn default_mask_sensitive_data() -> bool {
+    true
 }
 
 #[derive(Debug, Clone)]

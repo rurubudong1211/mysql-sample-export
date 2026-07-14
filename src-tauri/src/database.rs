@@ -203,6 +203,7 @@ impl DatabaseManager {
                     &table_rule.table,
                     table_rule.mode,
                     options.sample_limit,
+                    options.mask_sensitive_data,
                 )
                 .await?,
             );
@@ -231,6 +232,7 @@ impl DatabaseManager {
         table: &str,
         export_mode: ExportMode,
         sample_limit: u32,
+        mask_sensitive_data: bool,
     ) -> Result<ExportTableData, String> {
         let create_sql = self
             .get_create_table_sql(database.to_string(), table.to_string())
@@ -238,15 +240,19 @@ impl DatabaseManager {
         let structure = self
             .get_table_structure(database.to_string(), table.to_string())
             .await?;
-        let sample = mask_sensitive_sample_data(
-            self.get_export_data(
+        let sample = self
+            .get_export_data(
                 database.to_string(),
                 table.to_string(),
                 export_mode,
                 sample_limit,
             )
-            .await?,
-        );
+            .await?;
+        let sample = if mask_sensitive_data {
+            mask_sensitive_sample_data(sample)
+        } else {
+            sample
+        };
         Ok(ExportTableData {
             name: table.to_string(),
             export_mode,
@@ -1610,6 +1616,7 @@ mod tests {
             ]),
             format: ExportFormat::Sql,
             sample_limit: 10,
+            mask_sensitive_data: true,
             file_path: "out.sql".to_string(),
         };
 
@@ -1644,6 +1651,7 @@ mod tests {
             table_rules: None,
             format: ExportFormat::Json,
             sample_limit: 10,
+            mask_sensitive_data: true,
             file_path: "out.json".to_string(),
         };
 

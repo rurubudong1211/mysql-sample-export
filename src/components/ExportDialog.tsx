@@ -40,6 +40,7 @@ const ExportDialog: React.FC<Props> = ({
 
   const [selectedFormat, setSelectedFormat] = useState<ExportFormat>('sql');
   const [sampleLimit, setSampleLimit] = useState(() => clampSampleLimit(initialSampleLimit));
+  const [maskSensitiveData, setMaskSensitiveData] = useState(true);
   const [tableRules, setTableRules] = useState<ExportTableRule[]>(() => (
     tableNames.map((name) => ({ table: name, mode: 'sample' }))
   ));
@@ -93,6 +94,7 @@ const ExportDialog: React.FC<Props> = ({
         format: selectedFormat,
         sampleLimit,
         tableRules,
+        maskSensitiveData,
       });
     } finally {
       setExporting(false);
@@ -147,6 +149,27 @@ const ExportDialog: React.FC<Props> = ({
             <button type="button" className="btn btn-small" onClick={() => setAllModes('full')} disabled={exporting || tableRules.length === 0}>
               全部全量
             </button>
+          </div>
+          <div className="export-mask-control">
+            <span>敏感数据</span>
+            <div className="export-mode-toggle" role="group" aria-label="敏感数据导出方式">
+              <button
+                type="button"
+                className={maskSensitiveData ? 'active' : ''}
+                onClick={() => setMaskSensitiveData(true)}
+                disabled={exporting}
+              >
+                脱敏（默认）
+              </button>
+              <button
+                type="button"
+                className={!maskSensitiveData ? 'active' : ''}
+                onClick={() => setMaskSensitiveData(false)}
+                disabled={exporting}
+              >
+                原始数据
+              </button>
+            </div>
           </div>
         </div>
 

@@ -1013,6 +1013,17 @@ body {
   gap: 8px;
 }
 
+.export-mask-control {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--text-secondary);
+}
+
+.export-mask-control > span {
+  white-space: nowrap;
+}
+
 .export-rule-list {
   display: flex;
   flex-direction: column;

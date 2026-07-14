@@ -45,6 +45,7 @@ export interface ExportRequest {
   format: ExportFormat;
   sampleLimit: number;
   tableRules: ExportTableRule[];
+  maskSensitiveData: boolean;
 }
 
 export interface ExportOptions {
@@ -54,6 +55,7 @@ export interface ExportOptions {
   tableRules?: ExportTableRule[];
   format: ExportFormat;
   sampleLimit: number;
+  maskSensitiveData: boolean;
   filePath: string;
 }
 

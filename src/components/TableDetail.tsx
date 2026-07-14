@@ -87,7 +87,7 @@ const TableDetail: React.FC<Props> = ({ database, table, tableInfo, onBack }) =>
   }, [activeTab, sampleLimit]);
 
   // 导出处理
-  const handleExport = async ({ format, sampleLimit: exportSampleLimit, tableRules }: ExportRequest) => {
+  const handleExport = async ({ format, sampleLimit: exportSampleLimit, tableRules, maskSensitiveData }: ExportRequest) => {
     try {
       const exportRules = tableRules.length > 0 ? tableRules : [{ table, mode: 'sample' as const }];
       const defaultExt = format === 'sql' ? 'sql' : format === 'json' ? 'json' : format === 'csv' ? 'csv' : 'md';
@@ -108,6 +108,7 @@ const TableDetail: React.FC<Props> = ({ database, table, tableInfo, onBack }) =>
         tableRules: exportRules,
         format,
         sampleLimit: exportSampleLimit,
+        maskSensitiveData,
         filePath: dialogResult.filePath,
       });
 

@@ -82,7 +82,7 @@ const TableList: React.FC<Props> = ({ database, tables, onSelect, onRefresh, loa
     ));
   };
 
-  const handleExport = async ({ format, sampleLimit, tableRules }: ExportRequest) => {
+  const handleExport = async ({ format, sampleLimit, tableRules, maskSensitiveData }: ExportRequest) => {
     if (selectedTables.length === 0) {
       setError('请先选择要导出的表');
       return;
@@ -119,6 +119,7 @@ const TableList: React.FC<Props> = ({ database, tables, onSelect, onRefresh, loa
         tableRules: exportRules,
         format,
         sampleLimit,
+        maskSensitiveData,
         filePath: dialogResult.filePath,
       });
 
